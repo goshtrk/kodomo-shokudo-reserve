@@ -51,11 +51,6 @@
                 ＋ 参加者を追加する
             </button>
 
-            <section>
-                <label class="block font-bold mb-2 text-sm px-1 text-gray-700">備考（アレルギーやご要望）</label>
-                <textarea name="notes" rows="3" class="w-full border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="例：卵アレルギーがあります、など"></textarea>
-            </section>
-
             <div class="pt-4 px-2">
                 <button type="submit" id="submit-btn"
                     class="w-full bg-orange-500 text-white font-bold py-4 rounded-full shadow-lg hover:bg-orange-600 active:scale-95 transition-all text-lg disabled:bg-gray-400">
@@ -131,6 +126,7 @@
                             <label class="flex items-center space-x-3 cursor-pointer"><input type="radio" name="p-type-${index}" value="子供" checked class="w-5 h-5 text-orange-500"><span>子供</span></label>
                             <label class="flex items-center space-x-3 cursor-pointer"><input type="radio" name="p-type-${index}" value="大人" class="w-5 h-5 text-orange-500"><span>大人</span></label>
                         </div>
+                        <input type="text" name="p-note" placeholder="備考（アレルギー等）" class="w-full border-b border-gray-100 p-2 text-sm outline-none focus:border-orange-300">
                     </div>
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
@@ -165,15 +161,19 @@
                     displayName: profile.displayName,
                     userStatus: statusChecked.value,
                     eventDate: eventDate,
-                    notes: document.querySelector('textarea[name="notes"]').value,
-                    participants: []
+                    participants: [] // 全体の備考欄は廃止（または任意）
                 };
 
                 document.querySelectorAll('.participant-group').forEach((group, i) => {
                     const nameInput = group.querySelector('input[name="p-name"]');
                     if (nameInput.value.trim() !== "") {
                         const category = group.querySelector(`input[name="p-type-${i+1}"]:checked`).value;
-                        payload.participants.push({ name: nameInput.value, category: category });
+                        const note = group.querySelector('input[name="p-note"]').value; // 個別備考を取得
+                        payload.participants.push({ 
+                            name: nameInput.value, 
+                            category: category,
+                            note: note // JSONに追加
+                        });
                     }
                 });
 
