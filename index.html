@@ -6,11 +6,8 @@
     <title>こども食堂 予約フォーム</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* ローディングアニメーション */
         .loader { border-top-color: #f97316; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* ラジオボタン選択時のアニメーション補助 */
         .status-card { transition: all 0.2s ease-in-out; }
     </style>
 </head>
@@ -36,21 +33,18 @@
                         <span class="text-sm font-bold text-gray-600">2回目以降</span>
                     </label>
                 </div>
-                <p id="status-error" class="text-red-500 text-xs mt-3 hidden text-center font-bold">
-                    ※「初めて」か「2回目以降」かを選択してください
-                </p>
+                <p id="status-error" class="text-red-500 text-xs mt-3 hidden text-center font-bold">※選択してください</p>
             </section>
 
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
                 <label class="block font-bold mb-2 text-sm">参加希望日 <span class="text-red-500 text-xs">必須</span></label>
                 <input type="date" id="event-date" name="event-date" required
                     class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-                <p class="text-[10px] text-gray-400 mt-2">※公式LINEで案内された日付を選択してください</p>
             </section>
 
             <div id="participants-container" class="space-y-4">
                 <h2 class="font-bold text-lg px-1 text-gray-700">参加する方のお名前</h2>
-                </div>
+            </div>
 
             <button type="button" id="add-participant-btn"
                 class="w-full py-3 border-2 border-dashed border-orange-300 text-orange-500 rounded-xl font-bold hover:bg-orange-100 transition shadow-sm bg-white">
@@ -59,7 +53,7 @@
 
             <section>
                 <label class="block font-bold mb-2 text-sm px-1 text-gray-700">備考（アレルギーやご要望）</label>
-                <textarea name="notes" rows="3" class="w-full border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="例：卵アレルギーがあります、ベビーカーで伺います、など"></textarea>
+                <textarea name="notes" rows="3" class="w-full border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="例：卵アレルギーがあります、など"></textarea>
             </section>
 
             <div class="pt-4 px-2">
@@ -67,9 +61,6 @@
                     class="w-full bg-orange-500 text-white font-bold py-4 rounded-full shadow-lg hover:bg-orange-600 active:scale-95 transition-all text-lg disabled:bg-gray-400">
                     予約を申し込む
                 </button>
-                <p class="text-[11px] text-gray-400 text-center mt-6 leading-relaxed">
-                    住所・電話番号・生年月日などの詳細情報は、<br>当日受付にてスタッフがお伺いいたします。
-                </p>
             </div>
         </form>
 
@@ -84,162 +75,143 @@
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <script>
-        // --- 設定値 ---
-        const LIFF_ID = 'YOUR_LIFF_ID'; // LINE Developersで取得したLIFF IDを貼り付け
-        const GAS_WEBAPP_URL = 'YOUR_GAS_DEPLOY_URL'; // GASのウェブアプリURLを貼り付け
+        // ==========================================
+        // 設定エリア
+        // ==========================================
+        const LIFF_ID = '2009787140-kljUQCNo'; 
+        const GAS_WEBAPP_URL = 'YOUR_GAS_DEPLOY_URL'; 
+        
+        // ★デバッグモード設定
+        // true: ローカルブラウザ用（LINE ID取得やPOST送信をスキップしてConsole表示）
+        // false: 本番用（LINE IDを取得して実際にGASへ送信）
+        const IS_DEBUG = false; 
 
-        // --- LIFF初期化 ---
+        // ==========================================
+        // 初期化処理
+        // ==========================================
         async function initializeLiff() {
+            if (IS_DEBUG) {
+                console.log("Debug Mode: LIFF initialization skipped.");
+                return;
+            }
             try {
                 await liff.init({ liffId: LIFF_ID });
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                }
+                if (!liff.isLoggedIn()) { liff.login(); }
             } catch (error) {
                 console.error("LIFF初期化失敗", error);
-                alert("アプリの起動に失敗しました。LINEから開き直してください。");
             }
         }
 
-        // --- UI制御ロジック ---
+        // ==========================================
+        // UI制御
+        // ==========================================
         function updateStatusUI(type) {
             const lNew = document.getElementById('label-new');
             const lExt = document.getElementById('label-existing');
-            const errorMsg = document.getElementById('status-error');
+            document.getElementById('status-error').classList.add('hidden');
             
-            errorMsg.classList.add('hidden');
-            lNew.classList.remove('border-red-400', 'bg-red-50');
-            lExt.classList.remove('border-red-400', 'bg-red-50');
+            [lNew, lExt].forEach(el => el.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50');
             
-            if (type === 'new') {
-                lNew.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner';
-                lExt.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50';
-            } else {
-                lExt.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner';
-                lNew.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50';
-            }
+            const target = type === 'new' ? lNew : lExt;
+            target.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner';
         }
 
         function addParticipantField() {
             const container = document.getElementById('participants-container');
             const index = container.querySelectorAll('.participant-group').length + 1;
-            
             const html = `
                 <div class="participant-group bg-white p-5 rounded-xl shadow-sm border border-orange-100 relative">
                     <div class="flex justify-between items-center mb-4">
                         <span class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">参加者 ${index}</span>
-                        ${index > 1 ? `<button type="button" onclick="this.parentElement.parentElement.remove()" class="text-gray-400 text-xs hover:text-red-500">✕ 削除する</button>` : ''}
+                        ${index > 1 ? `<button type="button" onclick="this.parentElement.parentElement.remove()" class="text-gray-400 text-xs">✕ 削除</button>` : ''}
                     </div>
                     <div class="space-y-4">
-                        <div>
-                            <input type="text" name="p-name" placeholder="お名前（フルネーム）" required
-                                class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-orange-400 transition-colors text-base">
-                        </div>
+                        <input type="text" name="p-name" placeholder="お名前" required class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-orange-400 text-base">
                         <div class="flex gap-8 px-1">
-                            <label class="flex items-center space-x-3 cursor-pointer group">
-                                <input type="radio" name="p-type-${index}" value="子供" checked class="w-5 h-5 text-orange-500 border-gray-300 focus:ring-orange-500">
-                                <span class="text-sm font-medium group-hover:text-orange-600 transition-colors">子供</span>
-                            </label>
-                            <label class="flex items-center space-x-3 cursor-pointer group">
-                                <input type="radio" name="p-type-${index}" value="大人" class="w-5 h-5 text-orange-500 border-gray-300 focus:ring-orange-500">
-                                <span class="text-sm font-medium group-hover:text-orange-600 transition-colors">大人</span>
-                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer"><input type="radio" name="p-type-${index}" value="子供" checked class="w-5 h-5 text-orange-500"><span>子供</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer"><input type="radio" name="p-type-${index}" value="大人" class="w-5 h-5 text-orange-500"><span>大人</span></label>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
             container.insertAdjacentHTML('beforeend', html);
         }
 
-        // --- 送信メインロジック ---
+        // ==========================================
+        // 送信処理
+        // ==========================================
         document.getElementById('reservation-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // 1. バリデーション
             const statusChecked = document.querySelector('input[name="user-status"]:checked');
             const eventDate = document.getElementById('event-date').value;
             
-            if (!statusChecked) {
-                const errorMsg = document.getElementById('status-error');
-                const lNew = document.getElementById('label-new');
-                const lExt = document.getElementById('label-existing');
-                errorMsg.classList.remove('hidden');
-                lNew.classList.add('border-red-400', 'bg-red-50');
-                lExt.classList.add('border-red-400', 'bg-red-50');
-                lNew.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (!statusChecked || !eventDate) {
+                alert("必須項目（利用区分・日付）を入力してください");
                 return;
             }
 
-            if (!eventDate) {
-                alert("参加希望日を選択してください");
-                return;
-            }
-
-            // 2. 送信データ構築
             document.getElementById('loading-overlay').classList.remove('hidden');
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
 
             try {
-                // LINEプロファイル取得
-                const profile = await liff.getProfile();
-                
+                // デバッグ時はダミー、本番は実プロファイルを取得
+                let profile = { userId: "DEBUG_LINE_ID", displayName: "テストユーザー" };
+                if (!IS_DEBUG) {
+                    profile = await liff.getProfile();
+                }
+
+                // 送信データの組み立て
                 const payload = {
                     lineId: profile.userId,
                     displayName: profile.displayName,
-                    action: "book_event",
                     userStatus: statusChecked.value,
                     eventDate: eventDate,
                     notes: document.querySelector('textarea[name="notes"]').value,
                     participants: []
                 };
 
-                const groups = document.querySelectorAll('.participant-group');
-                groups.forEach((group, i) => {
+                document.querySelectorAll('.participant-group').forEach((group, i) => {
                     const nameInput = group.querySelector('input[name="p-name"]');
                     if (nameInput.value.trim() !== "") {
-                        // ラジオボタンのnameは p-type-1, p-type-2... と可変なので注意
-                        const radios = group.querySelectorAll('input[type="radio"]');
-                        let category = "子供"; 
-                        radios.forEach(r => { if(r.checked) category = r.value; });
-
-                        payload.participants.push({
-                            name: nameInput.value,
-                            category: category
-                        });
+                        const category = group.querySelector(`input[name="p-type-${i+1}"]:checked`).value;
+                        payload.participants.push({ name: nameInput.value, category: category });
                     }
                 });
 
-                // 3. GASへのPOST
-                // fetchの第2引数でmode: 'no-cors'を指定せず、GAS側で対応するのがベスト
-                const response = await fetch(GAS_WEBAPP_URL, {
+                // デバッグ用出力
+                console.log("--- 組み立てられたJSON ---");
+                console.log(JSON.stringify(payload, null, 2));
+
+                if (IS_DEBUG) {
+                    setTimeout(() => {
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        alert("【デバッグ】コンソールにJSONを出力しました。GASへの送信はスキップします。");
+                    }, 800);
+                    return;
+                }
+
+                // GASへPOST
+                await fetch(GAS_WEBAPP_URL, {
                     method: 'POST',
                     mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' }, // CORS回避のためtext/plain
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
 
-                // 4. 完了処理
                 document.getElementById('loading-text').innerText = "予約完了！";
-                setTimeout(() => {
-                    alert("予約が完了しました。LINE画面に戻ります。");
-                    liff.closeWindow();
-                }, 500);
+                setTimeout(() => { liff.closeWindow(); }, 1500);
 
             } catch (error) {
                 console.error("送信エラー:", error);
-                alert("送信に失敗しました。電波の良いところで再度お試しください。");
+                alert("エラーが発生しました。コンソールを確認してください。");
                 document.getElementById('loading-overlay').classList.add('hidden');
-                submitBtn.disabled = false;
             }
         });
 
-        // 初期表示設定
+        // 起動時
         document.addEventListener('DOMContentLoaded', () => {
             initializeLiff();
             addParticipantField();
         });
-
         document.getElementById('add-participant-btn').addEventListener('click', addParticipantField);
     </script>
 </body>
