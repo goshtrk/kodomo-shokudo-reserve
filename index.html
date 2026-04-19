@@ -199,8 +199,8 @@
 
                 if (liff.isInClient()) {
                     const participantSummary = payload.participants.map((p, index) => {
-                        const baseLine = `参加者${index + 1}：${p.name}（${p.category}）`;
-                        const noteLine = p.note ? `\n備考：${p.note}` : `\n備考：なし`;
+                        const baseLine = `・参加者${index + 1}：${p.name}（${p.category}）`;
+                        const noteLine = p.note ? `\n　備考：${p.note}` : `\n　備考：なし`;
                         return `${baseLine}${noteLine}`;
                     }).join('\n');
 
