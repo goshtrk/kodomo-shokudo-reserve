@@ -205,14 +205,14 @@
 
                     // 送信メッセージの組み立て
                     const messageText = 
-                        `【予約リクエスト送信】
-                        希望日：${payload.eventDate}
-                        利用区分：${payload.userStatus}
-                        予約人数：${payload.participants.length}名
-                        内容：
-                        ${participantSummary}
+`【予約リクエスト送信】
+希望日：${payload.eventDate}
+利用区分：${payload.userStatus}
+予約人数：${payload.participants.length}名
+内容：
+${participantSummary}
 
-                        ※このメッセージは自動送信されています。`;
+※このメッセージは自動送信されています。`;
 
                     try {
                         await liff.sendMessages([
