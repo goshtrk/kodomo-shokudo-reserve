@@ -198,10 +198,11 @@
                 });
 
                 if (liff.isInClient()) {
-                    // 参加者情報のテキスト化
-                    const participantSummary = payload.participants.map(p => 
-                        `・${p.name} (${p.category})${p.note ? ' ※' + p.note : ''}`
-                    ).join('\n');
+                    const participantSummary = payload.participants.map((p, index) => {
+                        const baseLine = `参加者${index + 1}：${p.name}（${p.category}）`;
+                        const noteLine = p.note ? `\n備考：${p.note}` : `\n備考：なし`;
+                        return `${baseLine}${noteLine}`;
+                    }).join('\n');
 
                     // 送信メッセージの組み立て
                     const messageText = 
