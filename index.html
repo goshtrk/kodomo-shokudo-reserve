@@ -197,6 +197,37 @@
                     body: JSON.stringify(payload)
                 });
 
+                if (liff.isInClient()) {
+                    // 参加者情報のテキスト化
+                    const participantSummary = payload.participants.map(p => 
+                        `・${p.name} (${p.category})${p.note ? ' ※' + p.note : ''}`
+                    ).join('\n');
+
+                    // 送信メッセージの組み立て
+                    const messageText = 
+                        `【予約リクエスト送信】
+                        希望日：${payload.eventDate}
+                        利用区分：${payload.userStatus}
+                        予約人数：${payload.participants.length}名
+                        内容：
+                        ${participantSummary}
+
+                        ※このメッセージは自動送信されています。`;
+
+                    try {
+                        await liff.sendMessages([
+                            {
+                                type: 'text',
+                                text: messageText
+                            }
+                        ]);
+                        console.log("LINEメッセージ送信成功");
+                    } catch (err) {
+                        console.error("LINEメッセージ送信失敗", err);
+                        // メッセージ送信に失敗しても、GASへの登録は完了しているので続行します
+                    }
+                }
+
                 document.getElementById('loading-text').innerText = "予約完了！";
                 setTimeout(() => { liff.closeWindow(); }, 1500);
 
