@@ -14,7 +14,7 @@
         input[type="date"] {
             -webkit-appearance: none;
             appearance: none;
-            min-height: 3rem; /* 高さを確保して押しやすく */
+            min-height: 3rem;
             background-color: #f9fafb;
         }
     </style>
@@ -43,10 +43,10 @@
                 </div>
             </section>
 
-            <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100 overflow-hidden">
+            <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
                 <label class="block font-bold mb-2 text-sm text-gray-700">参加希望日 <span class="text-red-500 text-xs">必須</span></label>
                 <input type="date" id="event-date" name="event-date" required
-                    class="w-full block border-2 border-gray-100 rounded-lg p-3 text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none box-border"
+                    class="w-full block border-2 border-gray-100 rounded-lg p-3 text-base focus:ring-2 focus:ring-orange-500 outline-none box-border"
                     onchange="updateMonthLabel()">
             </section>
 
@@ -82,9 +82,11 @@
                 <label class="block font-bold mb-2 text-sm text-gray-700">
                     緊急連絡先 <span id="phone-required-label" class="text-red-500 text-xs hidden">必須</span>
                 </label>
-                <input type="tel" id="emergency-phone" name="emergency-phone" placeholder="09012345678"
+                <input type="tel" id="emergency-phone" name="emergency-phone" 
+                    placeholder="09012345678 (ハイフンなし)"
+                    inputmode="numeric"
                     class="w-full border-2 border-gray-100 rounded-lg p-3 bg-gray-50 text-base focus:ring-2 focus:ring-orange-500 outline-none">
-                <p class="text-[10px] text-gray-400 mt-2">※子供のみ参加の場合は必ず入力してください。</p>
+                <p class="text-[10px] text-gray-400 mt-2">※数字のみ10〜11桁で入力してください。</p>
             </section>
 
             <div class="pt-4 px-2">
@@ -186,14 +188,22 @@
                 }
             });
 
+            // 基本バリデーション
             if (!attendanceType || !eventDate || visitCount === "" || participants.length === 0) {
-                alert("未入力の項目があります。参加者名まで入力されているか確認してください。");
+                alert("未入力の項目があります。");
+                return;
+            }
+
+            // 電話番号バリデーション（数字のみ10-11桁）
+            const phoneRegex = /^\d{10,11}$/;
+            if (phone !== "" && !phoneRegex.test(phone)) {
+                alert("電話番号はハイフンなしの数字のみ（10〜11桁）で入力してください。");
                 return;
             }
 
             if (attendanceType.value === "子供のみ") {
-                if (!phone) { alert("緊急連絡先を入力してください"); return; }
-                if (adultCount > 0) { alert("「子供のみ」に大人が含まれています"); return; }
+                if (!phone) { alert("「子供のみ」参加の場合は、緊急連絡先が必須です。"); return; }
+                if (adultCount > 0) { alert("「子供のみ」に大人が含まれています。"); return; }
             }
 
             if (attendanceType.value === "保護者同伴" && adultCount === 0) {
@@ -212,7 +222,7 @@
                     displayName: profile.displayName,
                     userStatus: visitCount,
                     emergencyContactPhone: phone,
-                    eventDate: eventDate, // GAS側で new Date() するのでそのまま送信
+                    eventDate: eventDate,
                     attendanceType: attendanceType.value,
                     participants: participants
                 };
@@ -235,7 +245,7 @@
 
                 if (liff.isInClient()) {
                     const summary = payload.participants.map(p => `・${p.name}(${p.category})`).join('\n');
-                    const text = `【予約申込】\n日程：${payload.eventDate}\n形態：${payload.attendanceType}\n回数：${payload.userStatus}回目\n\n参加者：\n${summary}`;
+                    const text = `【予約申込】\n日程：${payload.eventDate}\n形態：${payload.attendanceType}\n回数：${payload.userStatus}回目\n連絡先：${payload.emergencyContactPhone || 'なし'}\n\n参加者：\n${summary}`;
                     await liff.sendMessages([{ type: 'text', text: text }]);
                 }
 
