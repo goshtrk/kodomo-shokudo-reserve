@@ -2,13 +2,21 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>こども食堂 予約フォーム</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .loader { border-top-color: #f97316; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .status-card { transition: all 0.2s ease-in-out; }
+        
+        /* iPhoneの日付選択フォーム用リセット */
+        input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 3rem; /* 高さを確保して押しやすく */
+            background-color: #f9fafb;
+        }
     </style>
 </head>
 <body class="bg-orange-50 text-gray-800 font-sans">
@@ -22,38 +30,43 @@
         <form id="reservation-form" class="space-y-6" novalidate>
             
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
-                <label class="block font-bold mb-3 text-sm">お子さんのみのご利用ですか？ <span class="text-red-500 text-xs">必須</span></label>
+                <label class="block font-bold mb-3 text-sm text-gray-700">お子さんのみのご利用ですか？ <span class="text-red-500 text-xs">必須</span></label>
                 <div class="grid grid-cols-2 gap-4">
-                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50" id="label-child-only">
+                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50 text-gray-600" id="label-child-only">
                         <input type="radio" name="attendance-type" value="子供のみ" class="hidden" onclick="updateAttendanceUI('child')">
                         <span class="text-sm font-bold">子供のみ</span>
                     </label>
-                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50" id="label-with-guardian">
+                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50 text-gray-600" id="label-with-guardian">
                         <input type="radio" name="attendance-type" value="保護者同伴" class="hidden" onclick="updateAttendanceUI('guardian')">
                         <span class="text-sm font-bold">保護者同伴</span>
                     </label>
                 </div>
             </section>
 
-            <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
-                <label class="block font-bold mb-2 text-sm">参加希望日 <span class="text-red-500 text-xs">必須</span></label>
+            <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100 overflow-hidden">
+                <label class="block font-bold mb-2 text-sm text-gray-700">参加希望日 <span class="text-red-500 text-xs">必須</span></label>
                 <input type="date" id="event-date" name="event-date" required
-                    class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none"
+                    class="w-full block border-2 border-gray-100 rounded-lg p-3 text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none box-border"
                     onchange="updateMonthLabel()">
             </section>
 
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
-                <label class="block font-bold mb-2 text-sm">
+                <label class="block font-bold mb-2 text-sm text-gray-700">
                     <span id="month-display">--</span>月の参加回数を教えてください <span class="text-red-500 text-xs">必須</span>
                 </label>
-                <select id="visit-count" name="visit-count" class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-                    <option value="">選択してください</option>
-                    <script>
-                        for(let i=0; i<=10; i++) {
-                            document.write(`<option value="${i}">${i} 回</option>`);
-                        }
-                    </script>
-                </select>
+                <div class="relative">
+                    <select id="visit-count" name="visit-count" class="w-full border-2 border-gray-100 rounded-lg p-3 bg-gray-50 text-base focus:ring-2 focus:ring-orange-500 outline-none appearance-none">
+                        <option value="">選択してください</option>
+                        <script>
+                            for(let i=0; i<=10; i++) {
+                                document.write(`<option value="${i}">${i} 回</option>`);
+                            }
+                        </script>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                        <svg class="fill-current h-4 w-4" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
             </section>
 
             <div id="participants-container" class="space-y-4">
@@ -61,16 +74,16 @@
             </div>
 
             <button type="button" id="add-participant-btn"
-                class="w-full py-3 border-2 border-dashed border-orange-300 text-orange-500 rounded-xl font-bold hover:bg-orange-100 transition shadow-sm bg-white">
+                class="w-full py-3 border-2 border-dashed border-orange-300 text-orange-500 rounded-xl font-bold hover:bg-orange-100 transition shadow-sm bg-white active:bg-orange-50">
                 ＋ 参加者を追加する
             </button>
 
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
-                <label class="block font-bold mb-2 text-sm">
+                <label class="block font-bold mb-2 text-sm text-gray-700">
                     緊急連絡先 <span id="phone-required-label" class="text-red-500 text-xs hidden">必須</span>
                 </label>
                 <input type="tel" id="emergency-phone" name="emergency-phone" placeholder="09012345678"
-                    class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                    class="w-full border-2 border-gray-100 rounded-lg p-3 bg-gray-50 text-base focus:ring-2 focus:ring-orange-500 outline-none">
                 <p class="text-[10px] text-gray-400 mt-2">※子供のみ参加の場合は必ず入力してください。</p>
             </section>
 
@@ -93,16 +106,10 @@
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <script>
-        // ==========================================
-        // 設定エリア
-        // ==========================================
         const LIFF_ID = '2009787140-kljUQCNo'; 
         const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxIxyxE-cx_Mu120qwkGIjzePB1L6bIRC0-3tWWFeEGBnd1MPAwE1SPuhLuUAGhLNQ/exec'; 
         const IS_DEBUG = false; 
 
-        // ==========================================
-        // UI制御
-        // ==========================================
         async function initializeLiff() {
             if (IS_DEBUG) return;
             try {
@@ -158,19 +165,14 @@
             container.insertAdjacentHTML('beforeend', html);
         }
 
-        // ==========================================
-        // 送信処理
-        // ==========================================
         document.getElementById('reservation-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // 1. 入力値の取得
             const attendanceType = document.querySelector('input[name="attendance-type"]:checked');
             const eventDate = document.getElementById('event-date').value;
             const visitCount = document.getElementById('visit-count').value;
             const phone = document.getElementById('emergency-phone').value.trim();
 
-            // 2. 参加者データの収集と大人人数のカウント
             const participants = [];
             let adultCount = 0;
             document.querySelectorAll('.participant-group').forEach((group, i) => {
@@ -184,31 +186,21 @@
                 }
             });
 
-            // 3. バリデーション
             if (!attendanceType || !eventDate || visitCount === "" || participants.length === 0) {
-                alert("必須項目（ご利用形態・日付・参加回数・参加者名）を正しく入力してください");
+                alert("未入力の項目があります。参加者名まで入力されているか確認してください。");
                 return;
             }
 
-            // 子供のみ選択時：電話番号必須 ＆ 大人がいたらダメ
             if (attendanceType.value === "子供のみ") {
-                if (!phone) {
-                    alert("「子供のみ」で参加される場合は、緊急連絡先の入力が必須です");
-                    return;
-                }
-                if (adultCount > 0) {
-                    alert("「子供のみ」が選択されていますが、参加者に「大人」が含まれています。内容を確認してください。");
-                    return;
-                }
+                if (!phone) { alert("緊急連絡先を入力してください"); return; }
+                if (adultCount > 0) { alert("「子供のみ」に大人が含まれています"); return; }
             }
 
-            // 保護者同伴選択時：大人が1人もいないならダメ
             if (attendanceType.value === "保護者同伴" && adultCount === 0) {
-                alert("「保護者同伴」が選択されています。参加者に「大人」を1名以上含めるか、「子供のみ」を選択してください。");
+                alert("「保護者同伴」ですが、大人が含まれていません。");
                 return;
             }
 
-            // 4. 送信処理
             document.getElementById('loading-overlay').classList.remove('hidden');
 
             try {
@@ -220,17 +212,16 @@
                     displayName: profile.displayName,
                     userStatus: visitCount,
                     emergencyContactPhone: phone,
-                    eventDate: eventDate.replace(/-/g, '/'),
+                    eventDate: eventDate, // GAS側で new Date() するのでそのまま送信
                     attendanceType: attendanceType.value,
                     participants: participants
                 };
 
-                console.log("--- 送信JSON ---", JSON.stringify(payload, null, 2));
-
                 if (IS_DEBUG) {
+                    console.log("JSON:", payload);
                     setTimeout(() => {
                         document.getElementById('loading-overlay').classList.add('hidden');
-                        alert("【デバッグ】送信成功（コンソール確認）");
+                        alert("デバッグ送信完了");
                     }, 800);
                     return;
                 }
@@ -243,17 +234,16 @@
                 });
 
                 if (liff.isInClient()) {
-                    const participantSummary = payload.participants.map(p => `・${p.name}（${p.category}）${p.note ? '：'+p.note : ''}`).join('\n');
-                    const messageText = `【予約リクエスト送信】\n希望日：${payload.eventDate}\n形態：${payload.attendanceType}\n今月の参加：${payload.userStatus}回目\n緊急連絡先：${payload.emergencyContactPhone || 'なし'}\n\n参加者：\n${participantSummary}`;
-                    await liff.sendMessages([{ type: 'text', text: messageText }]);
+                    const summary = payload.participants.map(p => `・${p.name}(${p.category})`).join('\n');
+                    const text = `【予約申込】\n日程：${payload.eventDate}\n形態：${payload.attendanceType}\n回数：${payload.userStatus}回目\n\n参加者：\n${summary}`;
+                    await liff.sendMessages([{ type: 'text', text: text }]);
                 }
 
                 document.getElementById('loading-text').innerText = "送信完了！";
                 setTimeout(() => { liff.closeWindow(); }, 1500);
 
             } catch (error) {
-                console.error("送信エラー:", error);
-                alert("送信に失敗しました。");
+                alert("送信に失敗しました");
                 document.getElementById('loading-overlay').classList.add('hidden');
             }
         });
