@@ -22,24 +22,38 @@
         <form id="reservation-form" class="space-y-6" novalidate>
             
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
-                <label class="block font-bold mb-3 text-sm">ご利用は初めてですか？ <span class="text-red-500 text-xs">必須</span></label>
+                <label class="block font-bold mb-3 text-sm">お子さんのみのご利用ですか？ <span class="text-red-500 text-xs">必須</span></label>
                 <div class="grid grid-cols-2 gap-4">
-                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50" id="label-new">
-                        <input type="radio" name="user-status" value="初めて" class="hidden" onclick="updateStatusUI('new')">
-                        <span class="text-sm font-bold text-gray-600">初めて</span>
+                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50" id="label-child-only">
+                        <input type="radio" name="attendance-type" value="子供のみ" class="hidden" onclick="updateAttendanceUI('child')">
+                        <span class="text-sm font-bold">子供のみ</span>
                     </label>
-                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50" id="label-existing">
-                        <input type="radio" name="user-status" value="2回目以降" class="hidden" onclick="updateStatusUI('existing')">
-                        <span class="text-sm font-bold text-gray-600">2回目以降</span>
+                    <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50" id="label-with-guardian">
+                        <input type="radio" name="attendance-type" value="保護者同伴" class="hidden" onclick="updateAttendanceUI('guardian')">
+                        <span class="text-sm font-bold">保護者同伴</span>
                     </label>
                 </div>
-                <p id="status-error" class="text-red-500 text-xs mt-3 hidden text-center font-bold">※選択してください</p>
             </section>
 
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
                 <label class="block font-bold mb-2 text-sm">参加希望日 <span class="text-red-500 text-xs">必須</span></label>
                 <input type="date" id="event-date" name="event-date" required
-                    class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                    class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none"
+                    onchange="updateMonthLabel()">
+            </section>
+
+            <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
+                <label class="block font-bold mb-2 text-sm">
+                    <span id="month-display">--</span>月の参加回数を教えてください <span class="text-red-500 text-xs">必須</span>
+                </label>
+                <select id="visit-count" name="visit-count" class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                    <option value="">選択してください</option>
+                    <script>
+                        for(let i=0; i<=10; i++) {
+                            document.write(`<option value="${i}">${i} 回</option>`);
+                        }
+                    </script>
+                </select>
             </section>
 
             <div id="participants-container" class="space-y-4">
@@ -51,9 +65,18 @@
                 ＋ 参加者を追加する
             </button>
 
+            <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
+                <label class="block font-bold mb-2 text-sm">
+                    緊急連絡先 <span id="phone-required-label" class="text-red-500 text-xs hidden">必須</span>
+                </label>
+                <input type="tel" id="emergency-phone" name="emergency-phone" placeholder="09012345678"
+                    class="w-full border-gray-200 rounded-lg p-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                <p class="text-[10px] text-gray-400 mt-2">※子供のみ参加の場合は必ず入力してください。</p>
+            </section>
+
             <div class="pt-4 px-2">
                 <button type="submit" id="submit-btn"
-                    class="w-full bg-orange-500 text-white font-bold py-4 rounded-full shadow-lg hover:bg-orange-600 active:scale-95 transition-all text-lg disabled:bg-gray-400">
+                    class="w-full bg-orange-500 text-white font-bold py-4 rounded-full shadow-lg hover:bg-orange-600 active:scale-95 transition-all text-lg">
                     予約を申し込む
                 </button>
             </div>
@@ -75,20 +98,13 @@
         // ==========================================
         const LIFF_ID = '2009787140-kljUQCNo'; 
         const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxIxyxE-cx_Mu120qwkGIjzePB1L6bIRC0-3tWWFeEGBnd1MPAwE1SPuhLuUAGhLNQ/exec'; 
-        
-        // ★デバッグモード設定
-        // true: ローカルブラウザ用（LINE ID取得やPOST送信をスキップしてConsole表示）
-        // false: 本番用（LINE IDを取得して実際にGASへ送信）
-        const IS_DEBUG = false; 
+        const IS_DEBUG = true; 
 
         // ==========================================
-        // 初期化処理
+        // UI制御
         // ==========================================
         async function initializeLiff() {
-            if (IS_DEBUG) {
-                console.log("Debug Mode: LIFF initialization skipped.");
-                return;
-            }
+            if (IS_DEBUG) return;
             try {
                 await liff.init({ liffId: LIFF_ID });
                 if (!liff.isLoggedIn()) { liff.login(); }
@@ -97,18 +113,28 @@
             }
         }
 
-        // ==========================================
-        // UI制御
-        // ==========================================
-        function updateStatusUI(type) {
-            const lNew = document.getElementById('label-new');
-            const lExt = document.getElementById('label-existing');
-            document.getElementById('status-error').classList.add('hidden');
+        function updateAttendanceUI(type) {
+            const lChild = document.getElementById('label-child-only');
+            const lGuardian = document.getElementById('label-with-guardian');
+            const phoneLabel = document.getElementById('phone-required-label');
             
-            [lNew, lExt].forEach(el => el.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50');
+            [lChild, lGuardian].forEach(el => el.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50 text-gray-600');
             
-            const target = type === 'new' ? lNew : lExt;
-            target.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner';
+            if (type === 'child') {
+                lChild.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner text-orange-600';
+                phoneLabel.classList.remove('hidden');
+            } else {
+                lGuardian.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner text-orange-600';
+                phoneLabel.classList.add('hidden');
+            }
+        }
+
+        function updateMonthLabel() {
+            const dateVal = document.getElementById('event-date').value;
+            if (dateVal) {
+                const month = new Date(dateVal).getMonth() + 1;
+                document.getElementById('month-display').innerText = month;
+            }
         }
 
         function addParticipantField() {
@@ -138,61 +164,77 @@
         document.getElementById('reservation-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const statusChecked = document.querySelector('input[name="user-status"]:checked');
+            // 1. 入力値の取得
+            const attendanceType = document.querySelector('input[name="attendance-type"]:checked');
             const eventDate = document.getElementById('event-date').value;
-            
-            if (!statusChecked || !eventDate) {
-                alert("必須項目（利用区分・日付）を入力してください");
+            const visitCount = document.getElementById('visit-count').value;
+            const phone = document.getElementById('emergency-phone').value.trim();
+
+            // 2. 参加者データの収集と大人人数のカウント
+            const participants = [];
+            let adultCount = 0;
+            document.querySelectorAll('.participant-group').forEach((group, i) => {
+                const nameInput = group.querySelector('input[name="p-name"]');
+                const name = nameInput.value.trim();
+                if (name !== "") {
+                    const category = group.querySelector(`input[name="p-type-${i+1}"]:checked`).value;
+                    const note = group.querySelector('input[name="p-note"]').value;
+                    if (category === "大人") adultCount++;
+                    participants.push({ name, category, note });
+                }
+            });
+
+            // 3. バリデーション
+            if (!attendanceType || !eventDate || visitCount === "" || participants.length === 0) {
+                alert("必須項目（ご利用形態・日付・参加回数・参加者名）を正しく入力してください");
                 return;
             }
 
+            // 子供のみ選択時：電話番号必須 ＆ 大人がいたらダメ
+            if (attendanceType.value === "子供のみ") {
+                if (!phone) {
+                    alert("「子供のみ」で参加される場合は、緊急連絡先の入力が必須です");
+                    return;
+                }
+                if (adultCount > 0) {
+                    alert("「子供のみ」が選択されていますが、参加者に「大人」が含まれています。内容を確認してください。");
+                    return;
+                }
+            }
+
+            // 保護者同伴選択時：大人が1人もいないならダメ
+            if (attendanceType.value === "保護者同伴" && adultCount === 0) {
+                alert("「保護者同伴」が選択されています。参加者に「大人」を1名以上含めるか、「子供のみ」を選択してください。");
+                return;
+            }
+
+            // 4. 送信処理
             document.getElementById('loading-overlay').classList.remove('hidden');
 
             try {
-                // デバッグ時はダミー、本番は実プロファイルを取得
                 let profile = { userId: "DEBUG_LINE_ID", displayName: "テストユーザー" };
-                if (!IS_DEBUG) {
-                    profile = await liff.getProfile();
-                }
-
-                // 送信データの組み立て
-                const rawDate = document.getElementById('event-date').value;
-                const formattedDate = rawDate.replace(/-/g, '/'); // 2026-04-20 -> 2026/04/20 に変換
+                if (!IS_DEBUG) profile = await liff.getProfile();
 
                 const payload = {
                     lineId: profile.userId,
                     displayName: profile.displayName,
-                    userStatus: statusChecked.value,
-                    eventDate: formattedDate, // スラッシュ区切りの日付を使用
-                    participants: []
+                    userStatus: visitCount,
+                    emergencyContactPhone: phone,
+                    eventDate: eventDate.replace(/-/g, '/'),
+                    attendanceType: attendanceType.value,
+                    participants: participants
                 };
 
-                document.querySelectorAll('.participant-group').forEach((group, i) => {
-                    const nameInput = group.querySelector('input[name="p-name"]');
-                    if (nameInput.value.trim() !== "") {
-                        const category = group.querySelector(`input[name="p-type-${i+1}"]:checked`).value;
-                        const note = group.querySelector('input[name="p-note"]').value; // 個別備考を取得
-                        payload.participants.push({ 
-                            name: nameInput.value, 
-                            category: category,
-                            note: note // JSONに追加
-                        });
-                    }
-                });
-
-                // デバッグ用出力
-                console.log("--- 組み立てられたJSON ---");
-                console.log(JSON.stringify(payload, null, 2));
+                console.log("--- 送信JSON ---", JSON.stringify(payload, null, 2));
 
                 if (IS_DEBUG) {
                     setTimeout(() => {
                         document.getElementById('loading-overlay').classList.add('hidden');
-                        alert("【デバッグ】コンソールにJSONを出力しました。GASへの送信はスキップします。");
+                        alert("【デバッグ】送信成功（コンソール確認）");
                     }, 800);
                     return;
                 }
 
-                // GASへPOST
                 await fetch(GAS_WEBAPP_URL, {
                     method: 'POST',
                     mode: 'cors',
@@ -201,35 +243,9 @@
                 });
 
                 if (liff.isInClient()) {
-                    const participantSummary = payload.participants.map((p, index) => {
-                        const baseLine = `・参加者${index + 1}：${p.name}（${p.category}）`;
-                        const noteLine = p.note ? `\n　備考：${p.note}` : `\n　備考：なし`;
-                        return `${baseLine}${noteLine}`;
-                    }).join('\n');
-
-                    // 送信メッセージの組み立て
-                    const messageText = 
-`【予約リクエスト送信】
-希望日：${payload.eventDate}
-利用区分：${payload.userStatus}
-予約人数：${payload.participants.length}名
-内容：
-${participantSummary}
-
-※このメッセージは自動送信されています。`;
-
-                    try {
-                        await liff.sendMessages([
-                            {
-                                type: 'text',
-                                text: messageText
-                            }
-                        ]);
-                        console.log("LINEメッセージ送信成功");
-                    } catch (err) {
-                        console.error("LINEメッセージ送信失敗", err);
-                        // メッセージ送信に失敗しても、GASへの登録は完了しているので続行します
-                    }
+                    const participantSummary = payload.participants.map(p => `・${p.name}（${p.category}）${p.note ? '：'+p.note : ''}`).join('\n');
+                    const messageText = `【予約リクエスト送信】\n希望日：${payload.eventDate}\n形態：${payload.attendanceType}\n今月の参加：${payload.userStatus}回目\n緊急連絡先：${payload.emergencyContactPhone || 'なし'}\n\n参加者：\n${participantSummary}`;
+                    await liff.sendMessages([{ type: 'text', text: messageText }]);
                 }
 
                 document.getElementById('loading-text').innerText = "送信完了！";
@@ -237,12 +253,11 @@ ${participantSummary}
 
             } catch (error) {
                 console.error("送信エラー:", error);
-                alert("エラーが発生しました。コンソールを確認してください。");
+                alert("送信に失敗しました。");
                 document.getElementById('loading-overlay').classList.add('hidden');
             }
         });
 
-        // 起動時
         document.addEventListener('DOMContentLoaded', () => {
             initializeLiff();
             addParticipantField();
