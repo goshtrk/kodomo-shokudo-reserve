@@ -10,7 +10,6 @@
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .status-card { transition: all 0.2s ease-in-out; }
         
-        /* iPhoneの日付選択フォーム用リセット */
         input[type="date"] {
             -webkit-appearance: none;
             appearance: none;
@@ -83,7 +82,7 @@
                     緊急連絡先 <span id="phone-required-label" class="text-red-500 text-xs hidden">必須</span>
                 </label>
                 <input type="tel" id="emergency-phone" name="emergency-phone" 
-                    placeholder="09012345678 (ハイフンなし)"
+                    placeholder="09012345678"
                     inputmode="numeric"
                     class="w-full border-2 border-gray-100 rounded-lg p-3 bg-gray-50 text-base focus:ring-2 focus:ring-orange-500 outline-none">
                 <p class="text-[10px] text-gray-400 mt-2">※数字のみ10〜11桁で入力してください。</p>
@@ -136,6 +135,28 @@
                 lGuardian.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner text-orange-600';
                 phoneLabel.classList.add('hidden');
             }
+
+            // 既存の参加者のチェックボックスを制御・リセット
+            refreshParticipantCategories(type);
+        }
+
+        function refreshParticipantCategories(type) {
+            document.querySelectorAll('.participant-group').forEach((group) => {
+                const adultLabel = group.querySelector('.adult-option');
+                const childRadio = group.querySelector('input[value="子供"]');
+                const adultRadio = group.querySelector('input[value="大人"]');
+
+                if (type === 'child') {
+                    // 子供のみ：大人を隠して子供にチェック
+                    adultLabel.classList.add('hidden');
+                    childRadio.checked = true;
+                } else {
+                    // 保護者同伴：大人を表示し、選択を一度解除（または初期化）
+                    adultLabel.classList.remove('hidden');
+                    childRadio.checked = false;
+                    adultRadio.checked = false;
+                }
+            });
         }
 
         function updateMonthLabel() {
@@ -149,6 +170,10 @@
         function addParticipantField() {
             const container = document.getElementById('participants-container');
             const index = container.querySelectorAll('.participant-group').length + 1;
+            const currentType = document.querySelector('input[name="attendance-type"]:checked')?.value || 'guardian';
+            
+            const isChildOnly = (currentType === '子供のみ');
+
             const html = `
                 <div class="participant-group bg-white p-5 rounded-xl shadow-sm border border-orange-100 relative">
                     <div class="flex justify-between items-center mb-4">
@@ -158,8 +183,14 @@
                     <div class="space-y-4">
                         <input type="text" name="p-name" placeholder="お名前" required class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-orange-400 text-base">
                         <div class="flex gap-8 px-1">
-                            <label class="flex items-center space-x-3 cursor-pointer"><input type="radio" name="p-type-${index}" value="子供" checked class="w-5 h-5 text-orange-500"><span>子供</span></label>
-                            <label class="flex items-center space-x-3 cursor-pointer"><input type="radio" name="p-type-${index}" value="大人" class="w-5 h-5 text-orange-500"><span>大人</span></label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="p-type-${index}" value="子供" ${isChildOnly ? 'checked' : ''} class="w-5 h-5 text-orange-500">
+                                <span>子供</span>
+                            </label>
+                            <label class="adult-option flex items-center space-x-3 cursor-pointer ${isChildOnly ? 'hidden' : ''}">
+                                <input type="radio" name="p-type-${index}" value="大人" class="w-5 h-5 text-orange-500">
+                                <span>大人</span>
+                            </label>
                         </div>
                         <input type="text" name="p-note" placeholder="備考（アレルギー等）" class="w-full border-b border-gray-100 p-2 text-sm outline-none focus:border-orange-300">
                     </div>
@@ -177,37 +208,46 @@
 
             const participants = [];
             let adultCount = 0;
+            let unselectedCount = 0;
+
             document.querySelectorAll('.participant-group').forEach((group, i) => {
                 const nameInput = group.querySelector('input[name="p-name"]');
                 const name = nameInput.value.trim();
                 if (name !== "") {
-                    const category = group.querySelector(`input[name="p-type-${i+1}"]:checked`).value;
-                    const note = group.querySelector('input[name="p-note"]').value;
-                    if (category === "大人") adultCount++;
-                    participants.push({ name, category, note });
+                    const checkedRadio = group.querySelector(`input[name="p-type-${i+1}"]:checked`);
+                    if (!checkedRadio) {
+                        unselectedCount++;
+                    } else {
+                        const category = checkedRadio.value;
+                        const note = group.querySelector('input[name="p-note"]').value;
+                        if (category === "大人") adultCount++;
+                        participants.push({ name, category, note });
+                    }
                 }
             });
 
-            // 基本バリデーション
             if (!attendanceType || !eventDate || visitCount === "" || participants.length === 0) {
                 alert("未入力の項目があります。");
                 return;
             }
 
-            // 電話番号バリデーション（数字のみ10-11桁）
+            if (unselectedCount > 0) {
+                alert("参加者の種別（大人/子供）を選択してください。");
+                return;
+            }
+
             const phoneRegex = /^\d{10,11}$/;
             if (phone !== "" && !phoneRegex.test(phone)) {
-                alert("電話番号はハイフンなしの数字のみ（10〜11桁）で入力してください。");
+                alert("電話番号はハイフンなしの数字のみで入力してください。");
                 return;
             }
 
             if (attendanceType.value === "子供のみ") {
                 if (!phone) { alert("「子供のみ」参加の場合は、緊急連絡先が必須です。"); return; }
-                if (adultCount > 0) { alert("「子供のみ」に大人が含まれています。"); return; }
             }
 
             if (attendanceType.value === "保護者同伴" && adultCount === 0) {
-                alert("「保護者同伴」ですが、大人が含まれていません。");
+                alert("「保護者同伴」ですが、大人が1名も含まれていません。大人のボタンにチェックを入れるか、「子供のみ」を選択してください。");
                 return;
             }
 
@@ -245,7 +285,17 @@
 
                 if (liff.isInClient()) {
                     const summary = payload.participants.map(p => `・${p.name}(${p.category})`).join('\n');
-                    const text = `【予約申込】\n日程：${payload.eventDate}\n形態：${payload.attendanceType}\n回数：${payload.userStatus}回目\n連絡先：${payload.emergencyContactPhone || 'なし'}\n\n参加者：\n${summary}`;
+                    const text = 
+`【予約リクエスト送信】
+希望日：${payload.eventDate}
+形態：${payload.attendanceType}
+今月の参加回数：${payload.userStatus}回
+緊急連絡先：${payload.emergencyContactPhone || 'なし'}
+
+参加者：
+${summary}
+
+※このメッセージは自動送信されています。`;
                     await liff.sendMessages([{ type: 'text', text: text }]);
                 }
 
