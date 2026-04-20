@@ -257,19 +257,12 @@
                 let profile = { userId: "DEBUG_LINE_ID", displayName: "テストユーザー" };
                 if (!IS_DEBUG) profile = await liff.getProfile();
 
-                const dateVal = document.getElementById('event-date').value;
-                const dateParts = dateVal.split('-');
-
                 const payload = {
                     lineId: profile.userId,
                     displayName: profile.displayName,
                     userStatus: visitCount,
                     emergencyContactPhone: phone,
-                    eventDateObj: {
-                        year: parseInt(dateParts[0], 10),
-                        month: parseInt(dateParts[1], 10),
-                        day: parseInt(dateParts[2], 10)
-                    },
+                    eventDate: eventDate,
                     attendanceType: attendanceType.value,
                     participants: participants
                 };
