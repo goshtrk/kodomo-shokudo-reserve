@@ -9,13 +9,7 @@
         .loader { border-top-color: #f97316; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .status-card { transition: all 0.2s ease-in-out; }
-        
-        input[type="date"] {
-            -webkit-appearance: none;
-            appearance: none;
-            min-height: 3rem;
-            background-color: #f9fafb;
-        }
+        input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 3rem; background-color: #f9fafb; }
     </style>
 </head>
 <body class="bg-orange-50 text-gray-800 font-sans">
@@ -23,13 +17,13 @@
     <div class="max-w-md mx-auto p-4 pb-12">
         <header class="text-center py-6">
             <h1 class="text-2xl font-bold text-orange-600">こども食堂 予約</h1>
-            <p class="text-sm text-gray-500 mt-2">参加する方全員のお名前を入力してください</p>
+            <p class="text-sm text-gray-500 mt-2">お食事される方全員のお名前を入力してください</p>
         </header>
 
         <form id="reservation-form" class="space-y-6" novalidate>
             
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
-                <label class="block font-bold mb-3 text-sm text-gray-700">お子さんのみのご利用ですか？ <span class="text-red-500 text-xs">必須</span></label>
+                <label class="block font-bold mb-3 text-sm text-gray-700">ご利用形態 <span class="text-red-500 text-xs">必須</span></label>
                 <div class="grid grid-cols-2 gap-4">
                     <label class="status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50 text-gray-600" id="label-child-only">
                         <input type="radio" name="attendance-type" value="子供のみ" class="hidden" onclick="updateAttendanceUI('child')">
@@ -57,9 +51,10 @@
                     <select id="visit-count" name="visit-count" class="w-full border-2 border-gray-100 rounded-lg p-3 bg-gray-50 text-base focus:ring-2 focus:ring-orange-500 outline-none appearance-none">
                         <option value="">選択してください</option>
                         <script>
-                            for(let i=0; i<=10; i++) {
-                                document.write(`<option value="${i}">${i} 回</option>`);
-                            }
+                            const labels = ["初めて", "2回目", "3回目", "4回目"];
+                            labels.forEach((label, index) => {
+                                document.write(`<option value="${index + 1}">${label}</option>`);
+                            });
                         </script>
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
@@ -68,14 +63,30 @@
                 </div>
             </section>
 
-            <div id="participants-container" class="space-y-4">
-                <h2 class="font-bold text-lg px-1 text-gray-700">参加する方のお名前</h2>
+            <div id="children-section" class="space-y-4">
+                <h2 class="font-bold text-lg px-1 text-gray-700">お食事されるお子さん</h2>
+                <div id="children-container" class="space-y-4">
+                    </div>
+                <button type="button" onclick="addPersonField('children')"
+                    class="w-full py-3 border-2 border-dashed border-orange-300 text-orange-500 rounded-xl font-bold hover:bg-orange-100 transition shadow-sm bg-white active:bg-orange-50">
+                    ＋ お子さんを追加する
+                </button>
             </div>
 
-            <button type="button" id="add-participant-btn"
-                class="w-full py-3 border-2 border-dashed border-orange-300 text-orange-500 rounded-xl font-bold hover:bg-orange-100 transition shadow-sm bg-white active:bg-orange-50">
-                ＋ 参加者を追加する
-            </button>
+            <div id="guardians-section" class="space-y-4 hidden">
+                <div>
+                    <h2 class="font-bold text-lg px-1 text-gray-700">お食事される保護者</h2>
+                    <p class="text-[11px] text-orange-600 px-1 mt-1 leading-relaxed">
+                        ※保護者の方でご試食を希望される場合は、こちらにお名前をお願いします（初回限定でのご提供となります）。
+                    </p>
+                </div>
+                <div id="guardians-container" class="space-y-4">
+                    </div>
+                <button type="button" onclick="addPersonField('guardians')"
+                    class="w-full py-3 border-2 border-dashed border-orange-300 text-orange-500 rounded-xl font-bold hover:bg-orange-100 transition shadow-sm bg-white active:bg-orange-50">
+                    ＋ 保護者を追加する
+                </button>
+            </div>
 
             <section class="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
                 <label class="block font-bold mb-2 text-sm text-gray-700">
@@ -125,38 +136,21 @@
             const lChild = document.getElementById('label-child-only');
             const lGuardian = document.getElementById('label-with-guardian');
             const phoneLabel = document.getElementById('phone-required-label');
+            const guardianSection = document.getElementById('guardians-section');
             
             [lChild, lGuardian].forEach(el => el.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-gray-100 bg-gray-50 text-gray-600');
             
             if (type === 'child') {
                 lChild.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner text-orange-600';
                 phoneLabel.classList.remove('hidden');
+                guardianSection.classList.add('hidden');
+                document.getElementById('guardians-container').innerHTML = ''; // クリア
             } else {
                 lGuardian.className = 'status-card flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer border-orange-500 bg-orange-100 shadow-inner text-orange-600';
                 phoneLabel.classList.add('hidden');
+                guardianSection.classList.remove('hidden');
+                // 「初期表示はボタンのみ」なので、ここでは入力枠を追加しない
             }
-
-            // 既存の参加者のチェックボックスを制御・リセット
-            refreshParticipantCategories(type);
-        }
-
-        function refreshParticipantCategories(type) {
-            document.querySelectorAll('.participant-group').forEach((group) => {
-                const adultLabel = group.querySelector('.adult-option');
-                const childRadio = group.querySelector('input[value="子供"]');
-                const adultRadio = group.querySelector('input[value="大人"]');
-
-                if (type === 'child') {
-                    // 子供のみ：大人を隠して子供にチェック
-                    adultLabel.classList.add('hidden');
-                    childRadio.checked = true;
-                } else {
-                    // 保護者同伴：大人を表示し、選択を一度解除（または初期化）
-                    adultLabel.classList.remove('hidden');
-                    childRadio.checked = false;
-                    adultRadio.checked = false;
-                }
-            });
         }
 
         function updateMonthLabel() {
@@ -167,32 +161,20 @@
             }
         }
 
-        function addParticipantField() {
-            const container = document.getElementById('participants-container');
-            const index = container.querySelectorAll('.participant-group').length + 1;
-            const currentType = document.querySelector('input[name="attendance-type"]:checked')?.value || 'guardian';
+        function addPersonField(type) {
+            const container = document.getElementById(`${type}-container`);
+            const label = type === 'children' ? 'お子さん' : '保護者';
+            const index = container.children.length + 1;
             
-            const isChildOnly = (currentType === '子供のみ');
-
             const html = `
-                <div class="participant-group bg-white p-5 rounded-xl shadow-sm border border-orange-100 relative">
+                <div class="person-group bg-white p-5 rounded-xl shadow-sm border border-orange-100 relative">
                     <div class="flex justify-between items-center mb-4">
-                        <span class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">参加者 ${index}</span>
-                        ${index > 1 ? `<button type="button" onclick="this.parentElement.parentElement.remove()" class="text-gray-400 text-xs">✕ 削除</button>` : ''}
+                        <span class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">${label} ${index}</span>
+                        ${index > 1 || type === 'guardians' ? `<button type="button" onclick="this.parentElement.parentElement.remove()" class="text-gray-400 text-xs">✕ 削除</button>` : ''}
                     </div>
                     <div class="space-y-4">
-                        <input type="text" name="p-name" placeholder="お名前" required class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-orange-400 text-base">
-                        <div class="flex gap-8 px-1">
-                            <label class="flex items-center space-x-3 cursor-pointer">
-                                <input type="radio" name="p-type-${index}" value="子供" ${isChildOnly ? 'checked' : ''} class="w-5 h-5 text-orange-500">
-                                <span>子供</span>
-                            </label>
-                            <label class="adult-option flex items-center space-x-3 cursor-pointer ${isChildOnly ? 'hidden' : ''}">
-                                <input type="radio" name="p-type-${index}" value="大人" class="w-5 h-5 text-orange-500">
-                                <span>大人</span>
-                            </label>
-                        </div>
-                        <input type="text" name="p-note" placeholder="備考（アレルギー等）" class="w-full border-b border-gray-100 p-2 text-sm outline-none focus:border-orange-300">
+                        <input type="text" name="${type}-name" placeholder="お名前" required class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-orange-400 text-base">
+                        <input type="text" name="${type}-note" placeholder="備考（アレルギー等）" class="w-full border-b border-gray-100 p-2 text-sm outline-none focus:border-orange-300">
                     </div>
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
@@ -206,33 +188,24 @@
             const visitCount = document.getElementById('visit-count').value;
             const phone = document.getElementById('emergency-phone').value.trim();
 
-            const participants = [];
-            let adultCount = 0;
-            let unselectedCount = 0;
-
-            document.querySelectorAll('.participant-group').forEach((group, i) => {
-                const nameInput = group.querySelector('input[name="p-name"]');
-                const name = nameInput.value.trim();
-                if (name !== "") {
-                    const checkedRadio = group.querySelector(`input[name="p-type-${i+1}"]:checked`);
-                    if (!checkedRadio) {
-                        unselectedCount++;
-                    } else {
-                        const category = checkedRadio.value;
-                        const note = group.querySelector('input[name="p-note"]').value;
-                        if (category === "大人") adultCount++;
-                        participants.push({ name, category, note });
+            const collectData = (type) => {
+                const results = [];
+                const names = document.getElementsByName(`${type}-name`);
+                const notes = document.getElementsByName(`${type}-note`);
+                for (let i = 0; i < names.length; i++) {
+                    const name = names[i].value.trim();
+                    if (name) {
+                        results.push({ name, note: notes[i].value.trim() });
                     }
                 }
-            });
+                return results;
+            };
 
-            if (!attendanceType || !eventDate || visitCount === "" || participants.length === 0) {
-                alert("未入力の項目があります。");
-                return;
-            }
+            const children = collectData('children');
+            const guardians = collectData('guardians');
 
-            if (unselectedCount > 0) {
-                alert("参加者の種別（大人/子供）を選択してください。");
+            if (!attendanceType || !eventDate || visitCount === "" || children.length === 0) {
+                alert("未入力の項目があります（お子さんは1名以上入力してください）。");
                 return;
             }
 
@@ -242,12 +215,8 @@
                 return;
             }
 
-            if (attendanceType.value === "子供のみ") {
-                if (!phone) { alert("「子供のみ」参加の場合は、緊急連絡先が必須です。"); return; }
-            }
-
-            if (attendanceType.value === "保護者同伴" && adultCount === 0) {
-                alert("「保護者同伴」ですが、大人が1名も含まれていません。大人のボタンにチェックを入れるか、「子供のみ」を選択してください。");
+            if (attendanceType.value === "子供のみ" && !phone) {
+                alert("「子供のみ」参加の場合は、緊急連絡先が必須です。");
                 return;
             }
 
@@ -260,11 +229,12 @@
                 const payload = {
                     lineId: profile.userId,
                     displayName: profile.displayName,
-                    userStatus: visitCount,
-                    emergencyContactPhone: phone,
+                    visitCount: visitCount,
+                    emergencyPhone: phone,
                     eventDate: eventDate,
                     attendanceType: attendanceType.value,
-                    participants: participants
+                    children: children,
+                    guardians: guardians
                 };
 
                 if (IS_DEBUG) {
@@ -284,16 +254,20 @@
                 });
 
                 if (liff.isInClient()) {
-                    const summary = payload.participants.map(p => `・${p.name}(${p.category})`).join('\n');
+                    const childSummary = payload.children.map(p => `・${p.name}(子)`).join('\n');
+                    const guardianSummary = payload.guardians.length > 0 
+                        ? '\n' + payload.guardians.map(p => `・${p.name}(保護者)`).join('\n') 
+                        : '';
+                    
                     const text = 
 `【予約リクエスト送信】
 希望日：${payload.eventDate}
 形態：${payload.attendanceType}
-今月の参加回数：${payload.userStatus}回
-緊急連絡先：${payload.emergencyContactPhone || 'なし'}
+参加回数：${payload.visitCount}回
+緊急連絡先：${payload.emergencyPhone || 'なし'}
 
 参加者：
-${summary}
+${childSummary}${guardianSummary}
 
 ※このメッセージは自動送信されています。`;
                     await liff.sendMessages([{ type: 'text', text: text }]);
@@ -310,9 +284,8 @@ ${summary}
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeLiff();
-            addParticipantField();
+            addPersonField('children'); // お子さんは最初から1件表示
         });
-        document.getElementById('add-participant-btn').addEventListener('click', addParticipantField);
     </script>
 </body>
 </html>
